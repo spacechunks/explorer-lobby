@@ -10,6 +10,7 @@ import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import space.chunks.lobby.modules.LobbyModule
 import space.chunks.lobby.modules.chunkviewer.display.DisplaySessionService
+import space.chunks.lobby.modules.chunkviewer.event.PlayerIntentLeaveDisplaySessionEvent
 import space.chunks.lobby.modules.matchmaking.MMService
 import space.chunks.lobby.modules.party.PartyService
 import space.chunks.lobby.ui.Texts
@@ -50,6 +51,12 @@ class SpawnModule(
                         }
 
                         val player = ctx.source.sender as Player
+
+                        if (this.sessSvc.getSession(player) != null) {
+                            this.sessSvc.closeSession(player)
+                            Bukkit.getPluginManager().callEvent(PlayerIntentLeaveDisplaySessionEvent(player))
+                            return@executes Command.SINGLE_SUCCESS
+                        }
 
                         val world = Bukkit.getWorld(cfg.world)
                             ?: throw IllegalStateException("spawn world is not loaded: ${cfg.world}")
