@@ -25,9 +25,11 @@ import org.ktorm.dsl.*
 import org.ktorm.schema.Table
 import org.ktorm.schema.timestamp
 import org.ktorm.schema.uuid
+import space.chunks.auth.grpc.AuthCredentials
+import space.chunks.auth.oauth.ClientCredentialsTokenSource
+import space.chunks.auth.oauth.ReusableTokenSource
 import space.chunks.lobby.controlplane.instance.InstanceService
 import space.chunks.lobby.modules.chunkviewer.ChunkViewerModule
-import space.chunks.lobby.modules.chunkviewer.grpc.AuthCredentials
 import space.chunks.lobby.modules.chunkviewer.world.VoidWorldGenerator
 import space.chunks.lobby.modules.matchmaking.MMModule
 import space.chunks.lobby.modules.matchmaking.MMService
@@ -72,9 +74,18 @@ class Plugin : JavaPlugin(), Listener {
 
     private val mmClient = MatchmakingServiceGrpcKt.MatchmakingServiceCoroutineStub(mmChannel)
     private val instanceClient = InstanceServiceGrpcKt.InstanceServiceCoroutineStub(cpChannel)
-        .withCallCredentials(AuthCredentials(this.cpConfig.apiToken))
+        .withCallCredentials(
+            AuthCredentials(
+                ReusableTokenSource(ClientCredentialsTokenSource(this.cpConfig.authConfig))
+            )
+        )
+
     private val chunkClient = ChunkServiceGrpcKt.ChunkServiceCoroutineStub(cpChannel)
-        .withCallCredentials(AuthCredentials(cpConfig.apiToken))
+        .withCallCredentials(
+            AuthCredentials(
+                ReusableTokenSource(ClientCredentialsTokenSource(this.cpConfig.authConfig))
+            )
+        )
 
     private val packConfig = ResourcePackConfig.parse(this.config)
     private val packService = PackService(this.logger, this, packConfig)
@@ -165,7 +176,6 @@ class Plugin : JavaPlugin(), Listener {
             logger.info("Noxcrew interfaces are already installed; reusing the existing listener.")
         }
     }
-
 
     object PlayerProfiles : Table<Nothing>("player_profiles") {
         val id = uuid("id").primaryKey()

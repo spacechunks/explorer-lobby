@@ -1,12 +1,13 @@
 package space.chunks.lobby.controlplane
 
 import org.bukkit.configuration.file.FileConfiguration
+import space.chunks.auth.oauth.ClientCredentialsConfig
 import space.chunks.lobby.extensions.parseAddress
 
 data class Config(
     val addr: String,
     val port: Int,
-    val apiToken: String,
+    val authConfig: ClientCredentialsConfig,
     val instancePollIntervalSeconds: Int,
 ) {
     companion object {
@@ -17,12 +18,30 @@ data class Config(
 
             val parts = explorerEndpoint.parseAddress()
 
-            val controlPlaneAPIToken = config.getString("controlPlane.apiToken")
-                ?: throw RuntimeException("controlPlane.apiToken is missing")
+            val authTokenUrl = config.getString("controlPlane.auth.tokenUrl")
+                ?: throw RuntimeException("controlPlane.auth.tokenUrl is missing")
+
+            val authClientId = config.getString("controlPlane.auth.clientId")
+                ?: throw RuntimeException("controlPlane.auth.clientId is missing")
+
+            val authClientSecret = config.getString("controlPlane.auth.clientSecret")
+                ?: throw RuntimeException("controlPlane.auth.clientSecret is missing")
+
+            val authClaims = config.getStringList("controlPlane.auth.claims")
 
             val instancePollIntervalSeconds = config.getInt("controlPlane.instancePollIntervalSeconds", 1)
 
-            return Config(parts.first, parts.second, controlPlaneAPIToken, instancePollIntervalSeconds)
+            return Config(
+                parts.first,
+                parts.second,
+                ClientCredentialsConfig(
+                    authClientId,
+                    authClientSecret,
+                    authTokenUrl,
+                    authClaims,
+                ),
+                instancePollIntervalSeconds
+            )
         }
     }
 }

@@ -37,7 +37,7 @@ plugins {
 }
 
 group = "space.chunks"
-version = "2026.31.2"
+version = "2026.32.1"
 
 val pluginName = project.property("plugin.name").toString()
 
@@ -54,6 +54,7 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     implementation(kotlin("stdlib"))
+    implementation("com.nimbusds:oauth2-oidc-sdk:11.38.2")
     implementation("io.grpc:grpc-kotlin-stub:1.5.0")
     implementation("io.grpc:grpc-protobuf:1.62.2")
     implementation("io.grpc:grpc-netty:1.62.2")
