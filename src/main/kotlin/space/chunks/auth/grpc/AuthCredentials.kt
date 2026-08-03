@@ -12,9 +12,6 @@ class AuthCredentials(private val tokenSrc: ReusableTokenSource) : CallCredentia
         applier: MetadataApplier?
     ) {
         val tok = this.tokenSrc.token()
-        
-        println(tok.accessToken.toString())
-
         val m = Metadata()
         val k = Metadata.Key.of("Authorization", Metadata.ASCII_STRING_MARSHALLER)
         m.put(k, tok.accessToken.toString())

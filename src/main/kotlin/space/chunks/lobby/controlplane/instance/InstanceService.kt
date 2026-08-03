@@ -26,7 +26,17 @@ class InstanceService(
                 .setFlavorVersionId(versionId)
                 .setOrderedBy(orderedBy)
                 .build()
-            return@future client.runFlavorVersion(req).instance
+
+            println("======")
+            println("WEEEE RUUUUNNNN")
+
+            try {
+                return@future client.runFlavorVersion(req).instance
+            } catch (ex: Exception) {
+                throw ex
+            }
+//            println("======")
+//            println(f.id)
         }
     }
 

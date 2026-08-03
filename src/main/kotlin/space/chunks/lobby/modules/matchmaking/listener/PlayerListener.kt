@@ -77,8 +77,20 @@ class PlayerListener(
 
         val orderedBy = party?.owner?.id?.toString() ?: player.uniqueId.toString()
         player.setBool(PlayerMetadataKeys.MM_PRIVATE_ONGOING, true)
-        this.instanceService.runFlavorVersion(orderedBy, ver.id).thenAccept { instance ->
-            waitForInstance(
+        this.instanceService.runFlavorVersion(orderedBy, ver.id)
+            .exceptionally { ex ->
+                player.removeMetadata(PlayerMetadataKeys.MM_PRIVATE_ONGOING)
+                players.forEach {
+                    it.sendMessage(
+                        texts.component(
+                            "chunkviewer.instance.creation-failed", // TODO: make matchmaking text
+                            mapOf("state" to ex.message.toString())
+                        )
+                    )
+                }
+                return@exceptionally null
+            }.thenAccept { instance ->
+                waitForInstance(
                 this.logger,
                 config,
                 this.instanceService,

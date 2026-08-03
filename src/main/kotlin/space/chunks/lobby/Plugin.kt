@@ -72,20 +72,14 @@ class Plugin : JavaPlugin(), Listener {
         .keepAliveWithoutCalls(true)
         .build()
 
+    val tokSrc = ReusableTokenSource(ClientCredentialsTokenSource(this.cpConfig.authConfig))
+
     private val mmClient = MatchmakingServiceGrpcKt.MatchmakingServiceCoroutineStub(mmChannel)
     private val instanceClient = InstanceServiceGrpcKt.InstanceServiceCoroutineStub(cpChannel)
-        .withCallCredentials(
-            AuthCredentials(
-                ReusableTokenSource(ClientCredentialsTokenSource(this.cpConfig.authConfig))
-            )
-        )
+        .withCallCredentials(AuthCredentials(tokSrc))
 
     private val chunkClient = ChunkServiceGrpcKt.ChunkServiceCoroutineStub(cpChannel)
-        .withCallCredentials(
-            AuthCredentials(
-                ReusableTokenSource(ClientCredentialsTokenSource(this.cpConfig.authConfig))
-            )
-        )
+        .withCallCredentials(AuthCredentials(tokSrc))
 
     private val packConfig = ResourcePackConfig.parse(this.config)
     private val packService = PackService(this.logger, this, packConfig)
