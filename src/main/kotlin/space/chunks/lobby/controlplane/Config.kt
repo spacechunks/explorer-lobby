@@ -27,7 +27,7 @@ data class Config(
             val authClientSecret = config.getString("controlPlane.auth.clientSecret")
                 ?: throw RuntimeException("controlPlane.auth.clientSecret is missing")
 
-            val authClaims = config.getStringList("controlPlane.auth.claims")
+            val authScopes = config.getStringList("controlPlane.auth.scopes")
 
             val instancePollIntervalSeconds = config.getInt("controlPlane.instancePollIntervalSeconds", 1)
 
@@ -38,7 +38,7 @@ data class Config(
                     authClientId,
                     authClientSecret,
                     authTokenUrl,
-                    authClaims,
+                    authScopes,
                 ),
                 instancePollIntervalSeconds
             )
