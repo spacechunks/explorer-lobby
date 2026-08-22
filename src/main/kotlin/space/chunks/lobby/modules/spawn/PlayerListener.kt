@@ -271,7 +271,7 @@ class PlayerListener(
             cfg.z,
         )
         loc.yaw = cfg.yaw
-        loc.pitch = cfg.yaw
+        loc.pitch = cfg.pitch
         return loc
     }
 
