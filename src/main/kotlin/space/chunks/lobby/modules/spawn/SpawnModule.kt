@@ -57,14 +57,17 @@ class SpawnModule(
                             return@executes Command.SINGLE_SUCCESS
                         }
 
-                        player.teleport(
-                            Location(
-                                w,
-                                cfg.spawnLocation.x,
-                                cfg.spawnLocation.y,
-                                cfg.spawnLocation.z,
-                            )
+                        val loc = Location(
+                            w,
+                            cfg.spawnLocation.x,
+                            cfg.spawnLocation.y,
+                            cfg.spawnLocation.z,
                         )
+
+                        loc.yaw = cfg.spawnLocation.yaw
+                        loc.pitch = cfg.spawnLocation.pitch
+
+                        player.teleport(loc)
                         Command.SINGLE_SUCCESS
                     }
                     .build()

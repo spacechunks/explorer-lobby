@@ -25,6 +25,7 @@ import space.chunks.lobby.modules.chunkviewer.event.PlayerSelectFlavorEvent
 import space.chunks.lobby.modules.matchmaking.MMService
 import space.chunks.lobby.modules.party.PartyService
 import space.chunks.lobby.pack.Models
+import space.chunks.lobby.pack.Sounds
 import space.chunks.lobby.ui.ActionBar
 import space.chunks.lobby.ui.ScreenTransition
 import space.chunks.lobby.ui.Texts
@@ -69,6 +70,8 @@ class PlayerListener(
         event.joinMessage(Component.empty())
 
         val player = event.player
+
+        player.playSound(player.location, Sounds.JOIN_SOUND, 1f, 1f)
 
         // clear all keys, because they should only be valid for one session.
         // a session in this case lasts until the player disconnects.
@@ -261,7 +264,9 @@ class PlayerListener(
         )
 
     private fun location(cfg: LocationConfig): Location {
-        val world = Bukkit.getWorld(cfg.world)
+        val world =
+            Bukkit.getWorld(cfg.world) ?: WorldCreator.ofKey(NamespacedKey.fromString(cfg.world)!!)
+                .createWorld()
         val loc = Location(
             world,
             cfg.x,

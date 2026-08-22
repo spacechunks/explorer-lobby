@@ -22,6 +22,7 @@ object Textures {
 object Sounds {
     val CLICK = "spacechunks.explorer.chunk_viewer.click"
     val CLICK_ERR = "spacechunks.explorer.chunk_viewer.click_err"
+    val JOIN_SOUND = "spacechunks-extended:lobby.join"
 }
 
 object Fonts {
