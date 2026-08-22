@@ -58,8 +58,8 @@ class SpawnModule(
                             return@executes Command.SINGLE_SUCCESS
                         }
 
-                        val world = Bukkit.getWorld(cfg.world)
-                            ?: throw IllegalStateException("spawn world is not loaded: ${cfg.world}")
+                        val world = Bukkit.getWorld(cfg.spawnLocation.world)
+                            ?: throw IllegalStateException("spawn world is not loaded: ${cfg.spawnLocation.world}")
 
                         player.teleport(
                             Location(
@@ -75,7 +75,7 @@ class SpawnModule(
             )
         }
 
-        Bukkit.getServer().getWorld(cfg.world)?.setGameRule(GameRules.LOCATOR_BAR, false)
+        Bukkit.getServer().getWorld(cfg.spawnLocation.world)?.setGameRule(GameRules.LOCATOR_BAR, false)
     }
 
     override fun onDisable() {

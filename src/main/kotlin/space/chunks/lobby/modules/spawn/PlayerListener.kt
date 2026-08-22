@@ -260,16 +260,19 @@ class PlayerListener(
             mapOf("name" to player.name)
         )
 
-    private fun location(cfg: VectorConfig): Location {
-        val world = Bukkit.getWorld(this.config.world)
-            ?: throw IllegalStateException("spawn world is not loaded: ${this.config.world}")
+    private fun location(cfg: LocationConfig): Location {
+        val world = Bukkit.getWorld(cfg.world)
+            ?: WorldCreator.ofKey(NamespacedKey.fromString(cfg.world)!!).createWorld();
 
-        return Location(
+        val loc = Location(
             world,
             cfg.x,
             cfg.y,
             cfg.z,
         )
+        loc.yaw = cfg.yaw
+        loc.pitch = cfg.yaw
+        return loc
     }
 
     private fun playerTextPath(player: Player): String {

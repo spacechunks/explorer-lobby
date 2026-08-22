@@ -7,9 +7,6 @@ import com.noxcrew.interfaces.InterfacesListeners
 import io.grpc.ManagedChannelBuilder
 import io.grpc.netty.NettyChannelBuilder
 import io.papermc.paper.event.connection.configuration.AsyncPlayerConnectionConfigureEvent
-import net.kyori.adventure.resource.ResourcePackInfo
-import net.kyori.adventure.resource.ResourcePackRequest
-import net.kyori.adventure.resource.ResourcePackStatus
 import net.kyori.adventure.text.Component
 import net.kyori.adventure.text.format.NamedTextColor
 import org.bukkit.Bukkit
@@ -42,10 +39,8 @@ import space.chunks.lobby.ui.ActionBar
 import space.chunks.lobby.ui.Texts
 import space.chunks.lobby.ui.bossbar.BossBars
 import space.chunks.visual.ui.UiService
-import java.net.URI
 import java.time.Instant
 import java.util.*
-import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import kotlin.time.Duration.Companion.seconds
 import space.chunks.lobby.controlplane.Config as ControlPlaneConfig
@@ -217,50 +212,50 @@ class Plugin : JavaPlugin(), Listener {
             }
         }
 
-        val packFut = CompletableFuture<ResourcePackStatus>()
-        val hash = this.packService.packHash.get()
-        val info = ResourcePackInfo.resourcePackInfo(
-            UUID.fromString("92de217b-8b2b-403b-86a5-fe26fa3a9b5f"),
-            URI.create(this.packService.packDownloadUrl),
-            hash
-        )
-
-        val request = ResourcePackRequest.resourcePackRequest()
-            .packs(info)
-            .required(true)
-            .callback { _, status, _ ->
-                packFut.complete(status)
-            }
-            .build()
-
-        conn.audience.sendResourcePacks(request)
-
-        val status = try {
-            packFut.get(30, TimeUnit.SECONDS)
-        } catch (_: Throwable) {
-            null
-        }
-
-        when (status) {
-            ResourcePackStatus.ACCEPTED,
-            ResourcePackStatus.SUCCESSFULLY_LOADED,
-            ResourcePackStatus.DOWNLOADED -> {
-                this.packService.setCurrentPack(conn.profile.id!!, hash)
-                return
-            }
-
-            ResourcePackStatus.DECLINED -> {
-                conn.disconnect(this.texts.component("common.resource-pack.declined"))
-            }
-
-            ResourcePackStatus.FAILED_DOWNLOAD,
-            ResourcePackStatus.FAILED_RELOAD,
-            ResourcePackStatus.INVALID_URL,
-            ResourcePackStatus.DISCARDED,
-            null -> {
-                conn.disconnect(this.texts.component("common.resource-pack.failed"))
-            }
-        }
+//        val packFut = CompletableFuture<ResourcePackStatus>()
+//        val hash = this.packService.packHash.get()
+//        val info = ResourcePackInfo.resourcePackInfo(
+//            UUID.fromString("92de217b-8b2b-403b-86a5-fe26fa3a9b5f"),
+//            URI.create(this.packService.packDownloadUrl),
+//            hash
+//        )
+//
+//        val request = ResourcePackRequest.resourcePackRequest()
+//            .packs(info)
+//            .required(true)
+//            .callback { _, status, _ ->
+//                packFut.complete(status)
+//            }
+//            .build()
+//
+//        conn.audience.sendResourcePacks(request)
+//
+//        val status = try {
+//            packFut.get(30, TimeUnit.SECONDS)
+//        } catch (_: Throwable) {
+//            null
+//        }
+//
+//        when (status) {
+//            ResourcePackStatus.ACCEPTED,
+//            ResourcePackStatus.SUCCESSFULLY_LOADED,
+//            ResourcePackStatus.DOWNLOADED -> {
+//                this.packService.setCurrentPack(conn.profile.id!!, hash)
+//                return
+//            }
+//
+//            ResourcePackStatus.DECLINED -> {
+//                conn.disconnect(this.texts.component("common.resource-pack.declined"))
+//            }
+//
+//            ResourcePackStatus.FAILED_DOWNLOAD,
+//            ResourcePackStatus.FAILED_RELOAD,
+//            ResourcePackStatus.INVALID_URL,
+//            ResourcePackStatus.DISCARDED,
+//            null -> {
+//                conn.disconnect(this.texts.component("common.resource-pack.failed"))
+//            }
+//        }
     }
 
     override fun getDefaultWorldGenerator(worldName: String, id: String?): ChunkGenerator {

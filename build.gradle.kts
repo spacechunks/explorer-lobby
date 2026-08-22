@@ -37,7 +37,7 @@ plugins {
 }
 
 group = "space.chunks"
-version = "2026.32.3"
+version = "2026.34.1-test1"
 
 val pluginName = project.property("plugin.name").toString()
 
@@ -141,7 +141,7 @@ tasks {
             modrinth("ViaVersion", "5.10.0")
             modrinth("BetterModel", "8xoSUfzr") // version: 3.2.0
         }
-        minecraftVersion("26.1.2")
+        minecraftVersion("26.2")
     }
 }
 
