@@ -65,7 +65,7 @@ class ChunkDisplay(
                 )
 
                 display.billboard = Display.Billboard.CENTER
-                display.brightness = Display.Brightness(15, 15)
+                SelectorShaderMarkers.mark(display)
             }
     }
 
@@ -125,6 +125,7 @@ class ChunkDisplay(
                 Matrix4f().scale(1.5f).rotate(AxisAngle4f(Math.toRadians(-180.0).toFloat(), 0f, 1f, 0f))
             )
             this.tdName!!.brightness = Display.Brightness(15, 15)
+            SelectorShaderMarkers.mark(this.tdName!!)
 
             val lines = wrapText(this.chunk.description, 30)
 
@@ -140,6 +141,7 @@ class ChunkDisplay(
                     Matrix4f().scale(1f).rotate(AxisAngle4f(Math.toRadians(-180.0).toFloat(), 0f, 1f, 0f))
                 )
                 tdDesc.brightness = Display.Brightness(15, 15)
+                SelectorShaderMarkers.mark(tdDesc)
                 this.tdDesc.add(tdDesc)
             }
 

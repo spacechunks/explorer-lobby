@@ -48,6 +48,7 @@ abstract class View(
             d.billboard = Display.Billboard.FIXED
             d.backgroundColor = Color.fromARGB(0, 0, 0, 0) // transparent background
             d.brightness = Display.Brightness(15, 15)
+            SelectorShaderMarkers.mark(d)
         }
     }
 
@@ -66,7 +67,7 @@ abstract class View(
             d.setItemStack(stack)
             d.billboard = Display.Billboard.CENTER
             d.setTransformationMatrix(Matrix4f().scale(scale))
-            d.brightness = Display.Brightness(15, 15)
+            SelectorShaderMarkers.mark(d)
 
             this.elements.add(d)
 
