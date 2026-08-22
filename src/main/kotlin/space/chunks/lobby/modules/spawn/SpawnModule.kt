@@ -3,9 +3,7 @@ package space.chunks.lobby.modules.spawn
 import com.mojang.brigadier.Command
 import io.papermc.paper.command.brigadier.Commands
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents
-import org.bukkit.Bukkit
-import org.bukkit.GameRules
-import org.bukkit.Location
+import org.bukkit.*
 import org.bukkit.entity.Player
 import org.bukkit.plugin.Plugin
 import space.chunks.lobby.modules.LobbyModule
@@ -27,6 +25,7 @@ class SpawnModule(
 ) : LobbyModule(plugin, "spawn") {
     override fun onEnable() {
         val cfg = Config.parse(this.plugin.config)
+        val w = WorldCreator.ofKey(NamespacedKey.fromString(cfg.spawnLocation.world)!!).createWorld()
 
         Bukkit.getPluginManager().registerEvents(
             PlayerListener(
@@ -58,12 +57,9 @@ class SpawnModule(
                             return@executes Command.SINGLE_SUCCESS
                         }
 
-                        val world = Bukkit.getWorld(cfg.spawnLocation.world)
-                            ?: throw IllegalStateException("spawn world is not loaded: ${cfg.spawnLocation.world}")
-
                         player.teleport(
                             Location(
-                                world,
+                                w,
                                 cfg.spawnLocation.x,
                                 cfg.spawnLocation.y,
                                 cfg.spawnLocation.z,

@@ -262,8 +262,6 @@ class PlayerListener(
 
     private fun location(cfg: LocationConfig): Location {
         val world = Bukkit.getWorld(cfg.world)
-            ?: WorldCreator.ofKey(NamespacedKey.fromString(cfg.world)!!).createWorld();
-
         val loc = Location(
             world,
             cfg.x,
