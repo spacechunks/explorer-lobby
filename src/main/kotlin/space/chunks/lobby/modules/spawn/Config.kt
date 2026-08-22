@@ -3,17 +3,23 @@ package space.chunks.lobby.modules.spawn
 import org.bukkit.configuration.ConfigurationSection
 import org.bukkit.configuration.file.FileConfiguration
 
-data class VectorConfig(
+data class LocationConfig(
+    val world: String,
     val x: Double,
     val y: Double,
     val z: Double,
+    val yaw: Float,
+    val pitch: Float,
 ) {
     companion object {
-        fun parse(config: ConfigurationSection): VectorConfig {
-            return VectorConfig(
-                config.getDouble("x"),
-                config.getDouble("y"),
-                config.getDouble("z"),
+        fun parse(config: ConfigurationSection): LocationConfig {
+            return LocationConfig(
+                config.getString("world") ?: throw IllegalArgumentException("world is missing"),
+                config.getDouble("x", 0.0),
+                config.getDouble("y", 0.0),
+                config.getDouble("z", 0.0),
+                config.getDouble("yaw", 0.0).toFloat(),
+                config.getDouble("pitch", 0.0).toFloat(),
             )
         }
     }
@@ -21,9 +27,8 @@ data class VectorConfig(
 }
 
 data class Config(
-    val world: String,
-    val spawnLocation: VectorConfig,
-    val roboSpawnLocation: VectorConfig,
+    val spawnLocation: LocationConfig,
+    val roboSpawnLocation: LocationConfig,
     val postgresDSN: String
 ) {
     companion object {
@@ -40,9 +45,8 @@ data class Config(
                 config.getString("spawn.postgresDSN") ?: throw IllegalArgumentException("postgresDSN is missing")
 
             return Config(
-                config.getString("spawn.world") ?: throw IllegalArgumentException("spawn.world is missing"),
-                VectorConfig.parse(spawnLoc),
-                VectorConfig.parse(roboLoc),
+                LocationConfig.parse(spawnLoc),
+                LocationConfig.parse(roboLoc),
                 postgresDSN,
             )
         }
