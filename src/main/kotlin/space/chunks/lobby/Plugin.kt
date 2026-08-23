@@ -48,6 +48,7 @@ import space.chunks.lobby.modules.matchmaking.Config as MMConfig
 import space.chunks.lobby.modules.spawn.Config as SpawnConfig
 
 class Plugin : JavaPlugin(), Listener {
+    private val localMode = java.lang.Boolean.getBoolean("lobby.local")
     private val cpConfig = ControlPlaneConfig.parse(this.config)
     private val mmConfig = MMConfig.parse(this.config)
     private val spawnConfig = SpawnConfig.parse(this.config)
@@ -95,7 +96,13 @@ class Plugin : JavaPlugin(), Listener {
     private val bossbars = BossBars(this.uiService)
 
     // modules
-    private val chunkViewerMod = ChunkViewerModule(this, this.packConfig, this.chunkClient, this.texts)
+    private val chunkViewerMod = ChunkViewerModule(
+        this,
+        this.packConfig,
+        this.chunkClient,
+        this.texts,
+        fetchChunks = !this.localMode,
+    )
     private val spawnMod = SpawnModule(
         this.chunkViewerMod.sessionService,
         this,
@@ -117,22 +124,28 @@ class Plugin : JavaPlugin(), Listener {
 
     private lateinit var db: Database
 
-    private val modules = listOf(
+    private val modules = listOfNotNull(
         chunkViewerMod,
         spawnMod,
         partyMod,
-        mmMod,
+        mmMod.takeUnless { this.localMode },
     )
 
     override fun onEnable() {
         Class.forName("org.postgresql.Driver")
-        this.db = Database.connect(
-            url = this.spawnConfig.postgresDSN,
-        )
+
         installInterfaces()
         Bukkit.getPluginManager().registerEvents(this.uiService, this)
         this.uiService.start(this)
-        this.packService.startPeriodicPull()
+        if (this.localMode) {
+            logger.info("local mode enabled; external services are disabled")
+        } else {
+            this.db = Database.connect(
+                url = this.spawnConfig.postgresDSN,
+            )
+
+            this.packService.startPeriodicPull()
+        }
         Bukkit.getPluginManager().registerEvents(this, this)
 
         modules.forEach {
@@ -186,9 +199,9 @@ class Plugin : JavaPlugin(), Listener {
     @EventHandler
     fun onAsyncConfigure(event: AsyncPlayerConnectionConfigureEvent) {
         val conn = event.connection
-        val firstJoined = getFirstJoined(this.db, conn.profile.id!!)
+        val firstJoined = if (!localMode) getFirstJoined(this.db, conn.profile.id!!) else null
 
-        if (firstJoined == null) {
+        if (firstJoined == null && !localMode) {
             val gdprDiag = PrivacyPolicyDialog()
             val gdprFut = gdprDiag.show(conn.audience)
 

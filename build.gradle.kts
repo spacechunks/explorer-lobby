@@ -31,7 +31,7 @@ buildscript {
 
 plugins {
     kotlin("jvm") version "2.3.20"
-    id("xyz.jpenilla.run-paper") version "2.3.1"
+    id("xyz.jpenilla.run-paper") version "3.1.0"
     id("com.gradleup.shadow") version "9.4.1"
     id("com.google.protobuf") version "0.9.5"
 }
@@ -138,6 +138,8 @@ tasks.register("uploadToS3") {
 
 tasks {
     runServer {
+        jvmArgs("-Dlobby.local=true")
+
         downloadPlugins {
             modrinth("ViaVersion", "5.10.0")
             modrinth("BetterModel", "8xoSUfzr") // version: 3.2.0

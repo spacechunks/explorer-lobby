@@ -28,6 +28,7 @@ class ChunkViewerModule(
     private val packConfig: ResourcePackConfig,
     private val chunkClient: ChunkServiceGrpcKt.ChunkServiceCoroutineStub,
     private val texts: Texts,
+    private val fetchChunks: Boolean = true,
 ) : LobbyModule(plugin, "chunk-viewer") {
     val chunks = CopyOnWriteArrayList<ChunkDisplay>()
     val worldName = "chunk_viewer"
@@ -65,6 +66,8 @@ class ChunkViewerModule(
 
         // TODO: implement pagination -> create ChunkService in controlplane/chunk package
         Bukkit.getScheduler().runTaskTimerAsynchronously(this.plugin, { _ ->
+            if (!this.fetchChunks) return@runTaskTimerAsynchronously
+
             runBlocking {
                 val resp = chunkClient.listChunks(listChunksRequest {})
                 logger.info("got ${resp.chunksList.size} chunks from control plane")
