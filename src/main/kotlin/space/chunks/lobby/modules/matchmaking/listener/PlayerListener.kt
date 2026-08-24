@@ -8,6 +8,7 @@ import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerQuitEvent
 import org.bukkit.plugin.Plugin
 import space.chunks.lobby.controlplane.instance.InstanceService
+import space.chunks.lobby.extensions.latestCompleted
 import space.chunks.lobby.extensions.removeMetadata
 import space.chunks.lobby.extensions.setBool
 import space.chunks.lobby.modules.chunkviewer.event.PlayerSelectFlavorEvent
@@ -35,7 +36,11 @@ class PlayerListener(
         val player = event.player
         val flavor = event.flavor
         val chunk = event.chunk
-        val ver = flavor.versionsList.first()
+        val ver = flavor.versionsList.latestCompleted()
+        if (ver == null) {
+            player.sendMessage(this.texts.component("chunkviewer.instance.no-playable-flavor-version"))
+            return
+        }
 
         var actorId = event.player.uniqueId.toString()
 

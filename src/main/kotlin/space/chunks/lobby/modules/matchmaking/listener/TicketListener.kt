@@ -7,6 +7,7 @@ import org.bukkit.Bukkit
 import org.bukkit.event.EventHandler
 import org.bukkit.event.Listener
 import space.chunks.lobby.controlplane.instance.InstanceService
+import space.chunks.lobby.extensions.latestCompleted
 import space.chunks.lobby.extensions.setBool
 import space.chunks.lobby.extensions.toAudience
 import space.chunks.lobby.modules.matchmaking.Config
@@ -67,7 +68,7 @@ class TicketListener(
             .flavorsList
             .find { it.id == data.flavor.id }
             ?.versionsList
-            ?.first()
+            ?.latestCompleted()
 
         bossbars.sendLoadingBar(
             players,
@@ -112,7 +113,7 @@ class TicketListener(
             .flavorsList
             .find { it.id == data.flavor.id }
             ?.versionsList
-            ?.first()
+            ?.latestCompleted()
 
         this.mmService.createAndPollTicket(data.actorId, data.chunk, data.flavor, players.size)
 
