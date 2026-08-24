@@ -6,6 +6,9 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.temporal.WeekFields
 
 buildscript {
     repositories {
@@ -36,8 +39,40 @@ plugins {
     id("com.google.protobuf") version "0.9.5"
 }
 
+fun git(vararg args: String): String =
+    runCatching {
+        providers.exec { commandLine("git", *args) }
+            .standardOutput.asText.get().trim()
+    }.getOrDefault("")
+
 group = "space.chunks"
-version = "2026.34.1"
+
+version = run {
+    val today = LocalDate.now(ZoneOffset.UTC)
+    // ISO week-based year, so the days around new year land in the right year
+    val prefix = "${today.get(WeekFields.ISO.weekBasedYear())}." +
+            "${today.get(WeekFields.ISO.weekOfWeekBasedYear())}."
+
+    val calver = Regex("""^\d{4}\.\d+\.\d+$""")
+    val tagOnHead = git("tag", "--points-at", "HEAD")
+        .lineSequence()
+        .map(String::trim)
+        .firstOrNull { calver.matches(it) }
+
+    tagOnHead ?: run {
+        // otherwise: one past the highest release of this week
+        val highest = git("tag", "-l", "$prefix*")
+            .lineSequence()
+            .mapNotNull { it.trim().removePrefix(prefix).toIntOrNull() }
+            .maxOrNull() ?: 0
+        "$prefix${highest + 1}"
+    }
+}
+
+tasks.register("printVersion") {
+    val resolved = version.toString()
+    doLast { println(resolved) }
+}
 
 val pluginName = project.property("plugin.name").toString()
 
