@@ -1,0 +1,117 @@
+name: bump version
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+# two PRs merged at the same time would otherwise race on the same file
+concurrency:
+  group: bump-version-main
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: check whether the PR touched src/
+        id: changed
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -euo pipefail
+
+          if git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null \
+             && git cat-file -e "${HEAD_SHA}^{commit}" 2>/dev/null; then
+            # normal case: diff the whole PR against the point it forked off
+            from=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+            to="$HEAD_SHA"
+          else
+            # head branch was deleted on merge and its commits aren't reachable:
+            # fall back to what the merge/squash commit itself introduced
+            git fetch --no-tags --depth=2 origin "$MERGE_SHA" 2>/dev/null || true
+            from="${MERGE_SHA}^1"
+            to="$MERGE_SHA"
+          fi
+
+          echo "diffing $from..$to"
+
+          if git diff --name-only "$from" "$to" | grep -q '^src/'; then
+            echo "src/ changed, will bump"
+            echo "src=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "no changes under src/, skipping bump"
+            echo "src=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: compute next calendar version
+        id: calver
+        if: steps.changed.outputs.src == 'true'
+        run: |
+          set -euo pipefail
+
+          current=$(grep -m1 -oP '(?<=^version = ")[^"]+' build.gradle.kts)
+          echo "current version: $current"
+
+          # %G/%V are the ISO-8601 week-based year and week number,
+          # so week 1 of a year never gets attributed to the wrong year
+          year=$(date -u +%G)
+          week=$(date -u +%V)
+
+          IFS='.' read -r cur_year cur_week cur_counter <<< "$current"
+
+          # 10# forces base-10 so a zero-padded week like 08 isn't read as octal
+          if [ "$((10#$cur_year))" -eq "$((10#$year))" ] \
+             && [ "$((10#$cur_week))" -eq "$((10#$week))" ]; then
+            counter=$((10#$cur_counter + 1))
+          else
+            counter=1
+          fi
+
+          new="$((10#$year)).$((10#$week)).$counter"
+          echo "new version: $new"
+          echo "version=$new" >> "$GITHUB_OUTPUT"
+
+      - name: write new version into build.gradle.kts
+        if: steps.changed.outputs.src == 'true'
+        env:
+          NEW_VERSION: ${{ steps.calver.outputs.version }}
+        run: |
+          set -euo pipefail
+          # only the first top-level `version = "..."` line, so nothing inside
+          # dependency blocks or buildscript{} gets touched
+          sed -i -E "0,/^version = \".*\"$/s//version = \"${NEW_VERSION}\"/" build.gradle.kts
+          grep -n '^version = ' build.gradle.kts
+
+      - name: commit and push
+        if: steps.changed.outputs.src == 'true'
+        env:
+          NEW_VERSION: ${{ steps.calver.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "tobor"
+          git config user.email "tobor@chunks.space
+
+          if git diff --quiet -- build.gradle.kts; then
+            echo "version unchanged, nothing to do"
+            exit 0
+          fi
+
+          git add build.gradle.kts
+          git commit -m "bump version to ${NEW_VERSION} [skip ci]"
+
+          # in case another job pushed to main while this one was running
+          git pull --rebase origin main
+          git push origin HEAD:main
