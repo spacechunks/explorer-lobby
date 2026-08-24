@@ -224,51 +224,6 @@ class Plugin : JavaPlugin(), Listener {
                 set(it.firstJoined, Instant.now())
             }
         }
-
-//        val packFut = CompletableFuture<ResourcePackStatus>()
-//        val hash = this.packService.packHash.get()
-//        val info = ResourcePackInfo.resourcePackInfo(
-//            UUID.fromString("92de217b-8b2b-403b-86a5-fe26fa3a9b5f"),
-//            URI.create(this.packService.packDownloadUrl),
-//            hash
-//        )
-//
-//        val request = ResourcePackRequest.resourcePackRequest()
-//            .packs(info)
-//            .required(true)
-//            .callback { _, status, _ ->
-//                packFut.complete(status)
-//            }
-//            .build()
-//
-//        conn.audience.sendResourcePacks(request)
-//
-//        val status = try {
-//            packFut.get(30, TimeUnit.SECONDS)
-//        } catch (_: Throwable) {
-//            null
-//        }
-//
-//        when (status) {
-//            ResourcePackStatus.ACCEPTED,
-//            ResourcePackStatus.SUCCESSFULLY_LOADED,
-//            ResourcePackStatus.DOWNLOADED -> {
-//                this.packService.setCurrentPack(conn.profile.id!!, hash)
-//                return
-//            }
-//
-//            ResourcePackStatus.DECLINED -> {
-//                conn.disconnect(this.texts.component("common.resource-pack.declined"))
-//            }
-//
-//            ResourcePackStatus.FAILED_DOWNLOAD,
-//            ResourcePackStatus.FAILED_RELOAD,
-//            ResourcePackStatus.INVALID_URL,
-//            ResourcePackStatus.DISCARDED,
-//            null -> {
-//                conn.disconnect(this.texts.component("common.resource-pack.failed"))
-//            }
-//        }
     }
 
     override fun getDefaultWorldGenerator(worldName: String, id: String?): ChunkGenerator {
