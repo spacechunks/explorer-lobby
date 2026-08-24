@@ -1,0 +1,170 @@
+name: release
+
+on:
+  push:
+    tags:
+      # coarse filter; the exact format is enforced in the validate step below
+      - '[0-9][0-9][0-9][0-9].*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  DEPLOYMENTS_REPO: spacechunks/minecraft-deployments
+  DEPLOYMENTS_FILE: deployments/paper/lobby/config.pkrvars.json
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # full history + tags: the version in build.gradle.kts is derived
+          # from them, and we need main to verify the tag's lineage
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: validate the tag is calendar versioned
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          # <4-digit year>.<ISO week 1-53>.<counter starting at 1>
+          if ! printf '%s' "$TAG" \
+             | grep -Eq '^[0-9]{4}\.([1-9]|[1-4][0-9]|5[0-3])\.[1-9][0-9]*$'; then
+            echo "::error::'$TAG' is not a valid calver tag (expected e.g. 2026.34.1)"
+            exit 1
+          fi
+
+          echo "tag $TAG looks good"
+
+      - name: verify the tag points at a commit on main
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          git fetch --no-tags origin main
+
+          # the tagged commit must be reachable from main, otherwise someone
+          # tagged a feature branch and we'd ship unreviewed code
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$TAG ($GITHUB_SHA) is not an ancestor of main"
+            exit 1
+          fi
+
+          echo "$TAG is on main"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: gradle
+
+      - name: verify the build agrees with the tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          resolved=$(./gradlew -q printVersion | tail -n1)
+          echo "tag: $TAG / gradle: $resolved"
+
+          # guards against the jar and the S3 key disagreeing with the tag
+          if [ "$resolved" != "$TAG" ]; then
+            echo "::error::build.gradle.kts resolved '$resolved' but the tag is '$TAG'"
+            exit 1
+          fi
+
+      - name: build and upload to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
+        run: ./gradlew uploadToS3
+
+  deployment-pr:
+    needs: release
+    runs-on: ubuntu-latest
+    env:
+      # GITHUB_TOKEN can't write to another repository — this must be a PAT or
+      # GitHub App token with contents:write + pull-requests:write on the
+      # deployments repo
+      GH_TOKEN: ${{ secrets.DEPLOYMENTS_TOKEN }}
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.DEPLOYMENTS_REPO }}
+          token: ${{ secrets.DEPLOYMENTS_TOKEN }}
+          ref: main
+
+      - name: point the lobby plugin at the new jar
+        id: edit
+        run: |
+          set -euo pipefail
+
+          # `lobby-` followed by a digit, so lobby-map-*.jar is left alone
+          selector='^spc-mc/plugins/paper/lobby-[0-9]+\.[0-9]+\.[0-9]+\.jar$'
+
+          matches=$(jq --arg re "$selector" \
+            '[.files[] | select(.source | test($re))] | length' "$DEPLOYMENTS_FILE")
+
+          if [ "$matches" -ne 1 ]; then
+            echo "::error::expected exactly 1 lobby jar entry, found ${matches}"
+            exit 1
+          fi
+
+          jq --indent 2 \
+             --arg re "$selector" \
+             --arg jar "spc-mc/plugins/paper/lobby-${TAG}.jar" \
+             '(.files[] | select(.source | test($re)) | .source) = $jar' \
+             "$DEPLOYMENTS_FILE" > tmp.json
+          mv tmp.json "$DEPLOYMENTS_FILE"
+
+          git diff -- "$DEPLOYMENTS_FILE" || true
+
+          if git diff --quiet -- "$DEPLOYMENTS_FILE"; then
+            echo "already pointing at ${TAG}"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: open the pull request
+        if: steps.edit.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+
+          branch="release/lobby-${TAG}"
+
+          git config user.name "tobor"
+          git config user.email "tobor@chunks.cloud"
+
+          git checkout -b "$branch"
+          git add "$DEPLOYMENTS_FILE"
+          git commit -m "lobby: ${TAG}"
+          git push --force-with-lease origin "$branch"
+
+          # reuse the PR if this tag was released before and the PR is still open
+          if [ -n "$(gh pr list --repo "$DEPLOYMENTS_REPO" --head "$branch" \
+                       --state open --json number -q '.[].number')" ]; then
+            echo "PR for ${branch} already open, updated it"
+            exit 0
+          fi
+
+          gh pr create \
+            --repo "$DEPLOYMENTS_REPO" \
+            --base main \
+            --head "$branch" \
+            --title "lobby: ${TAG}" \
+            --body "Bumps the lobby plugin to \`${TAG}\`.
+
+          Released by ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          Jar: \`s3://\$BUCKET/plugins/paper/lobby-${TAG}.jar\`"
